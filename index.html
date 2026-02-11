@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Matchstick Motion - Turn Photos & Videos into Glowing Stick Figures</title>
+    <title>Matchstick Motion Pro - Smooth & High Quality</title>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
@@ -41,6 +41,15 @@
         .subtitle {
             font-size: 1.1em;
             opacity: 0.9;
+        }
+
+        .badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.2);
+            padding: 5px 15px;
+            border-radius: 20px;
+            margin-top: 10px;
+            font-size: 0.9em;
         }
 
         .controls {
@@ -120,6 +129,13 @@
 
         input[type="range"] {
             width: 100%;
+        }
+
+        select {
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 2px solid #ddd;
+            font-size: 0.9em;
         }
 
         .panels {
@@ -237,6 +253,15 @@
             color: #856404;
         }
 
+        .info-box {
+            background: #d1ecf1;
+            border: 2px solid #17a2b8;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            color: #0c5460;
+        }
+
         .hidden {
             display: none !important;
         }
@@ -259,9 +284,14 @@
 <body>
     <div class="container">
         <header>
-            <h1>🕺 Matchstick Motion</h1>
-            <p class="subtitle">Transform your photos and videos into glowing stick figures!</p>
+            <h1>🕺 Matchstick Motion PRO</h1>
+            <p class="subtitle">Smooth, High-Quality Glowing Stick Figures</p>
+            <div class="badge">✨ 60 FPS • Pose Smoothing • Enhanced Quality</div>
         </header>
+
+        <div class="info-box">
+            <strong>🎉 NEW IMPROVEMENTS:</strong> Smoother animations, bigger figures, better tracking, and higher quality output!
+        </div>
 
         <div class="controls">
             <div class="upload-section">
@@ -270,12 +300,12 @@
                 </button>
                 <input type="file" id="fileInput" class="file-input" accept="image/*,video/*">
                 <p style="margin-top: 10px; color: #666; font-size: 0.9em;">
-                    Supports JPG, PNG, MP4, WebM • Max video length: 60 seconds
+                    Supports JPG, PNG, MP4, WebM • Recommended: 15-30 second clips for best results
                 </p>
             </div>
 
             <div id="videoWarning" class="warning hidden">
-                ⚠️ Your video is longer than 60 seconds. Processing may be slow. Consider trimming it for better performance.
+                ⚠️ Your video is longer than 60 seconds. Processing may take time. Consider trimming for faster results.
             </div>
 
             <div class="settings-grid">
@@ -296,13 +326,32 @@
                 </div>
 
                 <div class="setting-group">
-                    <label>Glow Intensity: <span id="glowValue">20</span>px</label>
-                    <input type="range" id="glowIntensity" min="5" max="40" value="20">
+                    <label>Glow Intensity: <span id="glowValue">25</span>px</label>
+                    <input type="range" id="glowIntensity" min="10" max="50" value="25">
                 </div>
 
                 <div class="setting-group">
-                    <label>Line Thickness: <span id="thicknessValue">4</span>px</label>
-                    <input type="range" id="lineThickness" min="2" max="10" value="4">
+                    <label>Line Thickness: <span id="thicknessValue">6</span>px</label>
+                    <input type="range" id="lineThickness" min="3" max="12" value="6">
+                </div>
+
+                <div class="setting-group">
+                    <label>Figure Size</label>
+                    <select id="figureSize">
+                        <option value="0.8">Normal (80%)</option>
+                        <option value="1.0" selected>Large (100%)</option>
+                        <option value="1.2">Extra Large (120%)</option>
+                        <option value="1.5">Maximum (150%)</option>
+                    </select>
+                </div>
+
+                <div class="setting-group">
+                    <label>Smoothing Level</label>
+                    <select id="smoothingLevel">
+                        <option value="1">None (Fastest)</option>
+                        <option value="3" selected>Medium (Balanced)</option>
+                        <option value="5">High (Smoothest)</option>
+                    </select>
                 </div>
             </div>
         </div>
@@ -313,7 +362,7 @@
                 <div class="canvas-container" id="originalContainer">
                     <div class="placeholder">
                         <p>Upload a photo or video to get started!</p>
-                        <p style="margin-top: 10px; font-size: 0.9em;">Best results with clear, full-body shots</p>
+                        <p style="margin-top: 10px; font-size: 0.9em;">Best results with clear, full-body dance moves</p>
                     </div>
                 </div>
             </div>
@@ -341,7 +390,7 @@
                     📸 Download as Image
                 </button>
                 <button class="export-btn" id="exportVideoBtn" disabled>
-                    🎥 Download as Video
+                    🎥 Download as Video (High Quality)
                 </button>
             </div>
         </div>
@@ -356,6 +405,7 @@
         let videoFrames = [];
         let currentFrame = 0;
         let animationId = null;
+        let poseHistory = []; // For smoothing
 
         // Canvas and context
         const outputCanvas = document.getElementById('outputCanvas');
@@ -365,11 +415,13 @@
         let settings = {
             glowColor: '#00ff88',
             bgColor: '#1a1a2e',
-            glowIntensity: 20,
-            lineThickness: 4
+            glowIntensity: 25,
+            lineThickness: 6,
+            figureSize: 1.0,
+            smoothingLevel: 3
         };
 
-        // Initialize MediaPipe Pose
+        // Initialize MediaPipe Pose with better settings
         async function initPose() {
             pose = new Pose({
                 locateFile: (file) => {
@@ -382,16 +434,63 @@
                 smoothLandmarks: true,
                 enableSegmentation: false,
                 smoothSegmentation: false,
-                minDetectionConfidence: 0.5,
-                minTrackingConfidence: 0.5
+                minDetectionConfidence: 0.3, // Lower threshold for more complete figures
+                minTrackingConfidence: 0.3   // Better tracking
             });
 
             pose.onResults(onPoseResults);
         }
 
+        // Smooth landmarks using moving average
+        function smoothLandmarks(newLandmarks) {
+            if (!newLandmarks) return null;
+
+            poseHistory.push(JSON.parse(JSON.stringify(newLandmarks)));
+            
+            // Keep only recent frames for smoothing
+            const smoothWindow = settings.smoothingLevel;
+            if (poseHistory.length > smoothWindow) {
+                poseHistory.shift();
+            }
+
+            // If we don't have enough history, return current
+            if (poseHistory.length < 2) {
+                return newLandmarks;
+            }
+
+            // Average the positions
+            const smoothed = newLandmarks.map((landmark, i) => {
+                let sumX = 0, sumY = 0, sumZ = 0, sumVis = 0;
+                let count = 0;
+
+                poseHistory.forEach(historyFrame => {
+                    if (historyFrame[i]) {
+                        sumX += historyFrame[i].x;
+                        sumY += historyFrame[i].y;
+                        sumZ += historyFrame[i].z || 0;
+                        sumVis += historyFrame[i].visibility || 0;
+                        count++;
+                    }
+                });
+
+                return {
+                    x: sumX / count,
+                    y: sumY / count,
+                    z: sumZ / count,
+                    visibility: sumVis / count
+                };
+            });
+
+            return smoothed;
+        }
+
         // Handle pose detection results
         function onPoseResults(results) {
             if (!results.poseLandmarks) return;
+
+            // Apply smoothing
+            const smoothedLandmarks = smoothLandmarks(results.poseLandmarks);
+            if (!smoothedLandmarks) return;
 
             // Set canvas size to match source
             outputCanvas.width = results.image.width;
@@ -401,29 +500,84 @@
             ctx.fillStyle = settings.bgColor;
             ctx.fillRect(0, 0, outputCanvas.width, outputCanvas.height);
 
-            // Draw the glowing stick figure
-            drawGlowingStickFigure(results.poseLandmarks);
+            // Draw the glowing stick figure with scaling
+            drawGlowingStickFigure(smoothedLandmarks);
         }
 
-        // Draw glowing stick figure
+        // Calculate bounding box for scaling
+        function getBoundingBox(landmarks) {
+            let minX = Infinity, minY = Infinity;
+            let maxX = -Infinity, maxY = -Infinity;
+
+            landmarks.forEach(landmark => {
+                if (landmark.visibility > 0.2) {
+                    minX = Math.min(minX, landmark.x);
+                    minY = Math.min(minY, landmark.y);
+                    maxX = Math.max(maxX, landmark.x);
+                    maxY = Math.max(maxY, landmark.y);
+                }
+            });
+
+            return { minX, minY, maxX, maxY };
+        }
+
+        // Draw glowing stick figure with improved quality and size
         function drawGlowingStickFigure(landmarks) {
             const w = outputCanvas.width;
             const h = outputCanvas.height;
 
-            // Define connections between body points
+            // Get bounding box for centering and scaling
+            const bbox = getBoundingBox(landmarks);
+            const bboxWidth = bbox.maxX - bbox.minX;
+            const bboxHeight = bbox.maxY - bbox.minY;
+            const centerX = (bbox.minX + bbox.maxX) / 2;
+            const centerY = (bbox.minY + bbox.maxY) / 2;
+
+            // Calculate scale to make figure larger
+            const baseScale = Math.min(w / (bboxWidth * w), h / (bboxHeight * h)) * 0.8;
+            const scale = baseScale * settings.figureSize;
+
+            // Transform function to scale and center
+            const transform = (landmark) => {
+                const scaledX = ((landmark.x - centerX) * scale) + 0.5;
+                const scaledY = ((landmark.y - centerY) * scale) + 0.5;
+                return {
+                    x: scaledX * w,
+                    y: scaledY * h,
+                    visibility: landmark.visibility
+                };
+            };
+
+            // Define comprehensive connections between body points
             const connections = [
+                // Core body
                 [11, 12], // shoulders
-                [11, 13], [13, 15], // left arm
-                [12, 14], [14, 16], // right arm
                 [11, 23], [12, 24], // torso
                 [23, 24], // hips
-                [23, 25], [25, 27], // left leg
-                [24, 26], [26, 28], // right leg
-                [0, 1], [1, 2], [2, 3], [3, 7], // face (optional)
-                [0, 4], [4, 5], [5, 6], [6, 8]  // face (optional)
+                
+                // Left arm
+                [11, 13], [13, 15], // shoulder to elbow to wrist
+                [15, 17], [15, 19], [15, 21], // hand details
+                
+                // Right arm
+                [12, 14], [14, 16], // shoulder to elbow to wrist
+                [16, 18], [16, 20], [16, 22], // hand details
+                
+                // Left leg
+                [23, 25], [25, 27], // hip to knee to ankle
+                [27, 29], [27, 31], // foot details
+                
+                // Right leg
+                [24, 26], [26, 28], // hip to knee to ankle
+                [28, 30], [28, 32], // foot details
+                
+                // Head/neck (optional, can be commented out)
+                [0, 1], [1, 2], [2, 3],
+                [0, 4], [4, 5], [5, 6],
+                [9, 10] // mouth
             ];
 
-            // Setup glow effect
+            // Setup enhanced glow effect
             ctx.shadowBlur = settings.glowIntensity;
             ctx.shadowColor = settings.glowColor;
             ctx.strokeStyle = settings.glowColor;
@@ -431,29 +585,30 @@
             ctx.lineCap = 'round';
             ctx.lineJoin = 'round';
 
-            // Draw connections
+            // Draw connections with better quality
             connections.forEach(([start, end]) => {
                 if (landmarks[start] && landmarks[end]) {
-                    const startPoint = landmarks[start];
-                    const endPoint = landmarks[end];
+                    const startPoint = transform(landmarks[start]);
+                    const endPoint = transform(landmarks[end]);
 
-                    // Skip if visibility is too low
-                    if (startPoint.visibility < 0.5 || endPoint.visibility < 0.5) return;
-
-                    ctx.beginPath();
-                    ctx.moveTo(startPoint.x * w, startPoint.y * h);
-                    ctx.lineTo(endPoint.x * w, endPoint.y * h);
-                    ctx.stroke();
+                    // Lower visibility threshold for more complete figure
+                    if (landmarks[start].visibility > 0.2 && landmarks[end].visibility > 0.2) {
+                        ctx.beginPath();
+                        ctx.moveTo(startPoint.x, startPoint.y);
+                        ctx.lineTo(endPoint.x, endPoint.y);
+                        ctx.stroke();
+                    }
                 }
             });
 
-            // Draw joints as circles
+            // Draw joints as larger circles for better visibility
             ctx.fillStyle = settings.glowColor;
             landmarks.forEach((landmark, index) => {
-                // Only draw main body joints
-                if (index >= 11 && landmark.visibility > 0.5) {
+                // Draw all main body joints
+                if (index >= 11 && landmark.visibility > 0.2) {
+                    const point = transform(landmark);
                     ctx.beginPath();
-                    ctx.arc(landmark.x * w, landmark.y * h, settings.lineThickness * 1.5, 0, 2 * Math.PI);
+                    ctx.arc(point.x, point.y, settings.lineThickness * 2, 0, 2 * Math.PI);
                     ctx.fill();
                 }
             });
@@ -481,6 +636,8 @@
         // Handle image upload
         async function handleImage(file) {
             mediaType = 'image';
+            poseHistory = []; // Reset smoothing history
+            
             const img = new Image();
             const url = URL.createObjectURL(file);
 
@@ -506,9 +663,11 @@
             img.src = url;
         }
 
-        // Handle video upload
+        // Handle video upload with improved processing
         async function handleVideo(file) {
             mediaType = 'video';
+            poseHistory = []; // Reset smoothing history
+            
             const video = document.createElement('video');
             const url = URL.createObjectURL(file);
 
@@ -532,7 +691,7 @@
                 // Initialize pose detector
                 if (!pose) await initPose();
 
-                // Process video frames
+                // Process video frames at higher FPS
                 await processVideoFrames(video);
 
                 URL.revokeObjectURL(url);
@@ -541,9 +700,11 @@
             video.src = url;
         }
 
-        // Process video frame by frame
+        // Process video frame by frame with 60 FPS
         async function processVideoFrames(video) {
             videoFrames = [];
+            poseHistory = []; // Reset for fresh smoothing
+            
             const progressContainer = document.getElementById('progressContainer');
             const progressFill = document.getElementById('progressFill');
             const statusMessage = document.getElementById('statusMessage');
@@ -565,11 +726,11 @@
             outputCanvas.width = video.videoWidth;
             outputCanvas.height = video.videoHeight;
 
-            const fps = 30;
+            const fps = 60; // Increased from 30 to 60 for smoother motion
             const frameDuration = 1 / fps;
             const totalFrames = Math.floor(video.duration * fps);
 
-            statusMessage.textContent = `Processing frames... 0/${totalFrames}`;
+            statusMessage.textContent = `Processing at 60 FPS... 0/${totalFrames} frames`;
 
             for (let i = 0; i < totalFrames; i++) {
                 video.currentTime = i * frameDuration;
@@ -584,6 +745,9 @@
                 // Process with pose detection
                 await pose.send({image: tempCanvas});
 
+                // Small delay to ensure processing completes
+                await new Promise(resolve => setTimeout(resolve, 10));
+
                 // Save the processed frame
                 const frameData = outputCanvas.toDataURL('image/png');
                 videoFrames.push(frameData);
@@ -592,12 +756,12 @@
                 const progress = Math.round(((i + 1) / totalFrames) * 100);
                 progressFill.style.width = `${progress}%`;
                 progressFill.textContent = `${progress}%`;
-                statusMessage.textContent = `Processing frames... ${i + 1}/${totalFrames}`;
+                statusMessage.textContent = `Processing at 60 FPS... ${i + 1}/${totalFrames} frames`;
             }
 
             isProcessing = false;
             progressContainer.style.display = 'none';
-            statusMessage.textContent = 'Video processed! Ready to export.';
+            statusMessage.textContent = `✅ Video processed with ${totalFrames} frames! Ready to export.`;
 
             // Enable export buttons
             document.getElementById('exportImageBtn').disabled = false;
@@ -615,11 +779,11 @@
             });
         }
 
-        // Play processed video
+        // Play processed video at 60 FPS
         function playProcessedVideo() {
             if (animationId) cancelAnimationFrame(animationId);
             
-            const fps = 30;
+            const fps = 60;
             const frameDuration = 1000 / fps;
             let lastFrameTime = Date.now();
 
@@ -661,12 +825,12 @@
         // Export as image
         document.getElementById('exportImageBtn').addEventListener('click', () => {
             const link = document.createElement('a');
-            link.download = `matchstick-${Date.now()}.png`;
+            link.download = `matchstick-pro-${Date.now()}.png`;
             link.href = outputCanvas.toDataURL('image/png');
             link.click();
         });
 
-        // Export as video
+        // Export as high-quality video
         document.getElementById('exportVideoBtn').addEventListener('click', async () => {
             if (videoFrames.length === 0) return;
 
@@ -675,13 +839,13 @@
             const statusMessage = document.getElementById('statusMessage');
 
             progressContainer.style.display = 'block';
-            statusMessage.textContent = 'Creating video file...';
+            statusMessage.textContent = 'Creating high-quality video...';
 
-            // Create video from frames using MediaRecorder
-            const stream = outputCanvas.captureStream(30);
+            // Create video from frames using MediaRecorder with higher bitrate
+            const stream = outputCanvas.captureStream(60); // 60 FPS stream
             const mediaRecorder = new MediaRecorder(stream, {
                 mimeType: 'video/webm;codecs=vp9',
-                videoBitsPerSecond: 5000000
+                videoBitsPerSecond: 8000000 // Increased bitrate for better quality
             });
 
             const chunks = [];
@@ -692,20 +856,21 @@
                 const url = URL.createObjectURL(blob);
                 const link = document.createElement('a');
                 link.href = url;
-                link.download = `matchstick-${Date.now()}.webm`;
+                link.download = `matchstick-pro-${Date.now()}.webm`;
                 link.click();
                 URL.revokeObjectURL(url);
 
                 progressContainer.style.display = 'none';
-                statusMessage.textContent = 'Video exported successfully!';
+                statusMessage.textContent = '✅ High-quality video exported successfully!';
             };
 
             mediaRecorder.start();
 
-            // Play through all frames
+            // Play through all frames at 60 FPS
+            const frameDelay = 1000 / 60;
             for (let i = 0; i < videoFrames.length; i++) {
                 showFrame(i);
-                await new Promise(resolve => setTimeout(resolve, 1000 / 30));
+                await new Promise(resolve => setTimeout(resolve, frameDelay));
                 
                 const progress = Math.round(((i + 1) / videoFrames.length) * 100);
                 progressFill.style.width = `${progress}%`;
@@ -724,17 +889,19 @@
             videoFrames = [];
             currentFrame = 0;
             currentMedia = null;
+            poseHistory = [];
             
             document.getElementById('exportImageBtn').disabled = true;
             document.getElementById('exportVideoBtn').disabled = true;
             document.getElementById('videoWarning').classList.add('hidden');
         }
 
-        // Update settings
+        // Update settings with real-time preview
         document.getElementById('glowColor').addEventListener('input', (e) => {
             settings.glowColor = e.target.value;
             document.getElementById('glowColorLabel').textContent = e.target.value;
             if (currentMedia && mediaType === 'image') {
+                poseHistory = [];
                 pose.send({image: currentMedia});
             }
         });
@@ -743,6 +910,7 @@
             settings.bgColor = e.target.value;
             document.getElementById('bgColorLabel').textContent = e.target.value;
             if (currentMedia && mediaType === 'image') {
+                poseHistory = [];
                 pose.send({image: currentMedia});
             }
         });
@@ -751,6 +919,7 @@
             settings.glowIntensity = parseInt(e.target.value);
             document.getElementById('glowValue').textContent = e.target.value;
             if (currentMedia && mediaType === 'image') {
+                poseHistory = [];
                 pose.send({image: currentMedia});
             }
         });
@@ -759,8 +928,21 @@
             settings.lineThickness = parseInt(e.target.value);
             document.getElementById('thicknessValue').textContent = e.target.value;
             if (currentMedia && mediaType === 'image') {
+                poseHistory = [];
                 pose.send({image: currentMedia});
             }
+        });
+
+        document.getElementById('figureSize').addEventListener('change', (e) => {
+            settings.figureSize = parseFloat(e.target.value);
+            if (currentMedia && mediaType === 'image') {
+                poseHistory = [];
+                pose.send({image: currentMedia});
+            }
+        });
+
+        document.getElementById('smoothingLevel').addEventListener('change', (e) => {
+            settings.smoothingLevel = parseInt(e.target.value);
         });
 
         // Initialize on load

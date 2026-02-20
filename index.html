@@ -7,6 +7,8 @@
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.7/dist/umd/ffmpeg.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/util@0.12.1/dist/umd/index.js"></script>
     <style>
         * {
             margin: 0;
@@ -310,11 +312,11 @@
         <header>
             <h1>🕺 Matchstick Motion - OPTIMIZED</h1>
             <p class="subtitle">Maximum browser performance with smart optimizations</p>
-            <div class="badge">⚡ Adaptive Processing • Frame Interpolation • Speed Matched</div>
+            <div class="badge">⚡ FFmpeg Encoder • Exact Frame Rate • MP4 Output</div>
         </header>
 
         <div class="info-box">
-            <strong>⚡ OPTIMIZATION FEATURES:</strong> Strategic frame processing, pose interpolation, improved timing sync, and adaptive quality control for the smoothest possible browser-based results.
+            <strong>⚡ NEW: PROFESSIONAL ENCODER!</strong> Now using FFmpeg for perfect frame rate control, no dropped frames, and smooth MP4 output. This eliminates glitches caused by browser encoding!
         </div>
 
         <div class="controls">
@@ -330,6 +332,15 @@
 
             <div id="videoWarning" class="warning hidden">
                 ⚠️ Your video is longer than 45 seconds. For best performance, consider trimming to under 30 seconds.
+            </div>
+
+            <div id="processingControl" class="info-box hidden" style="text-align: center;">
+                <p style="margin-bottom: 15px; font-weight: 600;">
+                    ✅ <span id="mediaInfo">Media loaded!</span> Adjust your settings above, then click Start Processing.
+                </p>
+                <button class="upload-btn" id="startProcessingBtn" style="margin: 0;">
+                    🚀 Start Processing
+                </button>
             </div>
 
             <div class="settings-grid">
@@ -427,7 +438,7 @@
                     📸 Download as Image
                 </button>
                 <button class="export-btn" id="exportVideoBtn" disabled>
-                    🎥 Download as Video
+                    🎥 Download as Video (MP4)
                 </button>
             </div>
         </div>
@@ -670,10 +681,10 @@
 
                 currentMedia = img;
 
-                if (!pose) await initPose();
-                await pose.send({image: img});
-
-                document.getElementById('exportImageBtn').disabled = false;
+                // Show processing control instead of auto-processing
+                document.getElementById('mediaInfo').textContent = 'Image loaded!';
+                document.getElementById('processingControl').classList.remove('hidden');
+                document.getElementById('exportImageBtn').disabled = true;
                 document.getElementById('exportVideoBtn').disabled = true;
 
                 URL.revokeObjectURL(url);
@@ -705,8 +716,12 @@
 
                 currentMedia = video;
 
-                if (!pose) await initPose();
-                await processVideoFrames(video);
+                // Show processing control with video info
+                const duration = Math.round(video.duration);
+                document.getElementById('mediaInfo').textContent = `Video loaded! (${duration} seconds)`;
+                document.getElementById('processingControl').classList.remove('hidden');
+                document.getElementById('exportImageBtn').disabled = true;
+                document.getElementById('exportVideoBtn').disabled = true;
 
                 URL.revokeObjectURL(url);
             };
@@ -865,7 +880,50 @@
             link.click();
         });
 
-        // Export as video
+        // FFmpeg instance
+        let ffmpeg = null;
+        let ffmpegLoaded = false;
+
+        // Initialize FFmpeg
+        async function loadFFmpeg() {
+            if (ffmpegLoaded) return;
+            
+            const { FFmpeg } = FFmpegWASM;
+            const { toBlobURL, fetchFile } = FFmpegUtil;
+            
+            ffmpeg = new FFmpeg();
+            
+            const baseURL = 'https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/umd';
+            
+            ffmpeg.on('log', ({ message }) => {
+                console.log(message);
+            });
+            
+            ffmpeg.on('progress', ({ progress }) => {
+                const percent = Math.round(progress * 100);
+                const progressFill = document.getElementById('progressFill');
+                const statusMessage = document.getElementById('statusMessage');
+                if (progressFill && statusMessage) {
+                    progressFill.style.width = `${percent}%`;
+                    progressFill.textContent = `${percent}%`;
+                    statusMessage.textContent = `Encoding video with FFmpeg... ${percent}%`;
+                }
+            });
+
+            try {
+                await ffmpeg.load({
+                    coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
+                    wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
+                });
+                ffmpegLoaded = true;
+                console.log('FFmpeg loaded successfully');
+            } catch (error) {
+                console.error('Failed to load FFmpeg:', error);
+                ffmpegLoaded = false;
+            }
+        }
+
+        // Export as video using FFmpeg for proper encoding
         document.getElementById('exportVideoBtn').addEventListener('click', async () => {
             if (videoFrames.length === 0) return;
 
@@ -874,7 +932,114 @@
             const statusMessage = document.getElementById('statusMessage');
 
             progressContainer.style.display = 'block';
-            statusMessage.textContent = 'Encoding video...';
+            
+            try {
+                // Load FFmpeg if not already loaded
+                if (!ffmpegLoaded) {
+                    statusMessage.textContent = 'Loading video encoder (first time only)...';
+                    progressFill.style.width = '0%';
+                    progressFill.textContent = 'Loading...';
+                    await loadFFmpeg();
+                }
+
+                if (!ffmpegLoaded) {
+                    // Fallback to MediaRecorder if FFmpeg fails to load
+                    statusMessage.textContent = 'Using fallback encoder...';
+                    await exportVideoMediaRecorder();
+                    return;
+                }
+
+                statusMessage.textContent = 'Preparing frames for encoding...';
+                
+                const fps = parseInt(settings.outputFPS);
+                
+                // Write all frames to FFmpeg virtual filesystem
+                for (let i = 0; i < videoFrames.length; i++) {
+                    // Convert base64 to blob
+                    const response = await fetch(videoFrames[i]);
+                    const blob = await response.blob();
+                    const arrayBuffer = await blob.arrayBuffer();
+                    const uint8Array = new Uint8Array(arrayBuffer);
+                    
+                    // Write frame to FFmpeg
+                    const filename = `frame${String(i).padStart(5, '0')}.jpg`;
+                    await ffmpeg.writeFile(filename, uint8Array);
+                    
+                    if (i % 10 === 0) {
+                        const progress = Math.round((i / videoFrames.length) * 50); // 0-50% for frame prep
+                        progressFill.style.width = `${progress}%`;
+                        progressFill.textContent = `${progress}%`;
+                        statusMessage.textContent = `Preparing frames... ${i + 1}/${videoFrames.length}`;
+                    }
+                }
+
+                statusMessage.textContent = 'Encoding video with FFmpeg...';
+                
+                // Run FFmpeg to create MP4 with exact frame rate
+                // -framerate: input frame rate
+                // -i: input pattern
+                // -c:v libx264: use H.264 codec
+                // -preset fast: encoding speed preset
+                // -pix_fmt yuv420p: pixel format for compatibility
+                // -r: output frame rate
+                // -b:v: video bitrate
+                await ffmpeg.exec([
+                    '-framerate', String(fps),
+                    '-i', 'frame%05d.jpg',
+                    '-c:v', 'libx264',
+                    '-preset', 'fast',
+                    '-pix_fmt', 'yuv420p',
+                    '-r', String(fps),
+                    '-b:v', '8M',
+                    'output.mp4'
+                ]);
+
+                // Read the output file
+                const data = await ffmpeg.readFile('output.mp4');
+                
+                // Create download link
+                const blob = new Blob([data.buffer], { type: 'video/mp4' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `matchstick-optimized-${Date.now()}.mp4`;
+                link.click();
+                URL.revokeObjectURL(url);
+
+                // Cleanup FFmpeg filesystem
+                statusMessage.textContent = 'Cleaning up...';
+                for (let i = 0; i < videoFrames.length; i++) {
+                    const filename = `frame${String(i).padStart(5, '0')}.jpg`;
+                    try {
+                        await ffmpeg.deleteFile(filename);
+                    } catch (e) {
+                        // Ignore errors during cleanup
+                    }
+                }
+                try {
+                    await ffmpeg.deleteFile('output.mp4');
+                } catch (e) {
+                    // Ignore
+                }
+
+                progressContainer.style.display = 'none';
+                statusMessage.textContent = '✅ High-quality MP4 video exported successfully!';
+
+            } catch (error) {
+                console.error('FFmpeg export error:', error);
+                statusMessage.textContent = '❌ Error during encoding. Using fallback method...';
+                await exportVideoMediaRecorder();
+            }
+        });
+
+        // Fallback: Original MediaRecorder method
+        async function exportVideoMediaRecorder() {
+            const progressContainer = document.getElementById('progressContainer');
+            const progressFill = document.getElementById('progressFill');
+            const statusMessage = document.getElementById('statusMessage');
+
+            progressContainer.style.display = 'block';
+            statusMessage.textContent = 'Encoding video (fallback method)...';
 
             const fps = parseInt(settings.outputFPS);
             const stream = outputCanvas.captureStream(fps);
@@ -897,7 +1062,7 @@
                 URL.revokeObjectURL(url);
 
                 progressContainer.style.display = 'none';
-                statusMessage.textContent = '✅ Video exported successfully!';
+                statusMessage.textContent = '✅ Video exported (WebM format)';
             };
 
             mediaRecorder.start();
@@ -913,7 +1078,7 @@
             }
 
             mediaRecorder.stop();
-        });
+        }
 
         function clearMedia() {
             if (animationId) {
@@ -929,7 +1094,28 @@
             document.getElementById('exportImageBtn').disabled = true;
             document.getElementById('exportVideoBtn').disabled = true;
             document.getElementById('videoWarning').classList.add('hidden');
+            document.getElementById('processingControl').classList.add('hidden');
         }
+
+        // Start Processing button handler
+        document.getElementById('startProcessingBtn').addEventListener('click', async () => {
+            if (!currentMedia) return;
+
+            // Hide the processing control
+            document.getElementById('processingControl').classList.add('hidden');
+
+            // Initialize pose detector if not already done
+            if (!pose) await initPose();
+
+            // Process based on media type
+            if (mediaType === 'image') {
+                await pose.send({image: currentMedia});
+                document.getElementById('exportImageBtn').disabled = false;
+                document.getElementById('exportVideoBtn').disabled = true;
+            } else if (mediaType === 'video') {
+                await processVideoFrames(currentMedia);
+            }
+        });
 
         // Settings updates
         document.getElementById('glowColor').addEventListener('input', (e) => {

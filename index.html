@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Matchstick Motion Pro - Smooth & High Quality</title>
+    <title>Matchstick Motion - Optimized Edition</title>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
@@ -236,6 +236,7 @@
             justify-content: center;
             color: white;
             font-weight: bold;
+            font-size: 0.85em;
         }
 
         .status-message {
@@ -262,6 +263,29 @@
             color: #0c5460;
         }
 
+        .quality-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            margin-left: 10px;
+        }
+
+        .quality-fast {
+            background: #28a745;
+            color: white;
+        }
+
+        .quality-balanced {
+            background: #ffc107;
+            color: #333;
+        }
+
+        .quality-smooth {
+            background: #17a2b8;
+            color: white;
+        }
+
         .hidden {
             display: none !important;
         }
@@ -284,13 +308,13 @@
 <body>
     <div class="container">
         <header>
-            <h1>🕺 Matchstick Motion PRO</h1>
-            <p class="subtitle">Smooth, High-Quality Glowing Stick Figures</p>
-            <div class="badge">✨ 60 FPS • Pose Smoothing • Enhanced Quality</div>
+            <h1>🕺 Matchstick Motion - OPTIMIZED</h1>
+            <p class="subtitle">Maximum browser performance with smart optimizations</p>
+            <div class="badge">⚡ Adaptive Processing • Frame Interpolation • Speed Matched</div>
         </header>
 
         <div class="info-box">
-            <strong>🎉 NEW IMPROVEMENTS:</strong> Smoother animations, bigger figures, better tracking, and higher quality output!
+            <strong>⚡ OPTIMIZATION FEATURES:</strong> Strategic frame processing, pose interpolation, improved timing sync, and adaptive quality control for the smoothest possible browser-based results.
         </div>
 
         <div class="controls">
@@ -300,15 +324,33 @@
                 </button>
                 <input type="file" id="fileInput" class="file-input" accept="image/*,video/*">
                 <p style="margin-top: 10px; color: #666; font-size: 0.9em;">
-                    Supports JPG, PNG, MP4, WebM • Recommended: 15-30 second clips for best results
+                    Supports JPG, PNG, MP4, WebM • Best: 15-30 second clips
                 </p>
             </div>
 
             <div id="videoWarning" class="warning hidden">
-                ⚠️ Your video is longer than 60 seconds. Processing may take time. Consider trimming for faster results.
+                ⚠️ Your video is longer than 45 seconds. For best performance, consider trimming to under 30 seconds.
             </div>
 
             <div class="settings-grid">
+                <div class="setting-group">
+                    <label>Processing Quality</label>
+                    <select id="processingQuality">
+                        <option value="fast">⚡ Fast (Process every 3rd frame)</option>
+                        <option value="balanced" selected>⚖️ Balanced (Process every 2nd frame)</option>
+                        <option value="smooth">✨ Smooth (Process all frames - slowest)</option>
+                    </select>
+                </div>
+
+                <div class="setting-group">
+                    <label>Output FPS</label>
+                    <select id="outputFPS">
+                        <option value="24">24 FPS (Cinematic)</option>
+                        <option value="30" selected>30 FPS (Balanced)</option>
+                        <option value="60">60 FPS (Smooth - requires more processing)</option>
+                    </select>
+                </div>
+
                 <div class="setting-group">
                     <label>Stick Figure Glow Color</label>
                     <div class="color-picker-wrapper">
@@ -326,29 +368,24 @@
                 </div>
 
                 <div class="setting-group">
-                    <label>Glow Intensity: <span id="glowValue">25</span>px</label>
-                    <input type="range" id="glowIntensity" min="10" max="50" value="25">
+                    <label>Glow Intensity: <span id="glowValue">30</span>px</label>
+                    <input type="range" id="glowIntensity" min="10" max="60" value="30">
                 </div>
 
                 <div class="setting-group">
-                    <label>Line Thickness: <span id="thicknessValue">6</span>px</label>
-                    <input type="range" id="lineThickness" min="3" max="12" value="6">
+                    <label>Line Thickness: <span id="thicknessValue">7</span>px</label>
+                    <input type="range" id="lineThickness" min="3" max="15" value="7">
                 </div>
 
                 <div class="setting-group">
-                    <label>Figure Size</label>
-                    <select id="figureSize">
-                        <option value="0.8">Normal (80%)</option>
-                        <option value="1.0" selected>Large (100%)</option>
-                        <option value="1.2">Extra Large (120%)</option>
-                        <option value="1.5">Maximum (150%)</option>
-                    </select>
+                    <label>Figure Scale: <span id="scaleValue">120</span>%</label>
+                    <input type="range" id="figureScale" min="80" max="200" value="120" step="10">
                 </div>
 
                 <div class="setting-group">
-                    <label>Smoothing Level</label>
-                    <select id="smoothingLevel">
-                        <option value="1">None (Fastest)</option>
+                    <label>Interpolation Smoothness</label>
+                    <select id="interpolationLevel">
+                        <option value="0">Off (Fastest)</option>
                         <option value="3" selected>Medium (Balanced)</option>
                         <option value="5">High (Smoothest)</option>
                     </select>
@@ -362,7 +399,7 @@
                 <div class="canvas-container" id="originalContainer">
                     <div class="placeholder">
                         <p>Upload a photo or video to get started!</p>
-                        <p style="margin-top: 10px; font-size: 0.9em;">Best results with clear, full-body dance moves</p>
+                        <p style="margin-top: 10px; font-size: 0.9em;">Optimized for dance and fast movements</p>
                     </div>
                 </div>
             </div>
@@ -390,7 +427,7 @@
                     📸 Download as Image
                 </button>
                 <button class="export-btn" id="exportVideoBtn" disabled>
-                    🎥 Download as Video (High Quality)
+                    🎥 Download as Video
                 </button>
             </div>
         </div>
@@ -403,9 +440,11 @@
         let mediaType = null;
         let isProcessing = false;
         let videoFrames = [];
+        let processedPoses = []; // Store detected poses for interpolation
         let currentFrame = 0;
         let animationId = null;
-        let poseHistory = []; // For smoothing
+        let originalVideoDuration = 0;
+        let originalVideoFPS = 30;
 
         // Canvas and context
         const outputCanvas = document.getElementById('outputCanvas');
@@ -415,13 +454,15 @@
         let settings = {
             glowColor: '#00ff88',
             bgColor: '#1a1a2e',
-            glowIntensity: 25,
-            lineThickness: 6,
-            figureSize: 1.0,
-            smoothingLevel: 3
+            glowIntensity: 30,
+            lineThickness: 7,
+            figureScale: 1.2,
+            processingQuality: 'balanced',
+            outputFPS: 30,
+            interpolationLevel: 3
         };
 
-        // Initialize MediaPipe Pose with better settings
+        // Initialize MediaPipe Pose with optimized settings
         async function initPose() {
             pose = new Pose({
                 locateFile: (file) => {
@@ -430,67 +471,24 @@
             });
 
             pose.setOptions({
-                modelComplexity: 1,
+                modelComplexity: 0, // Fastest model (0 = lite, 1 = full, 2 = heavy)
                 smoothLandmarks: true,
                 enableSegmentation: false,
                 smoothSegmentation: false,
-                minDetectionConfidence: 0.3, // Lower threshold for more complete figures
-                minTrackingConfidence: 0.3   // Better tracking
+                minDetectionConfidence: 0.4,
+                minTrackingConfidence: 0.4
             });
 
             pose.onResults(onPoseResults);
         }
 
-        // Smooth landmarks using moving average
-        function smoothLandmarks(newLandmarks) {
-            if (!newLandmarks) return null;
-
-            poseHistory.push(JSON.parse(JSON.stringify(newLandmarks)));
-            
-            // Keep only recent frames for smoothing
-            const smoothWindow = settings.smoothingLevel;
-            if (poseHistory.length > smoothWindow) {
-                poseHistory.shift();
-            }
-
-            // If we don't have enough history, return current
-            if (poseHistory.length < 2) {
-                return newLandmarks;
-            }
-
-            // Average the positions
-            const smoothed = newLandmarks.map((landmark, i) => {
-                let sumX = 0, sumY = 0, sumZ = 0, sumVis = 0;
-                let count = 0;
-
-                poseHistory.forEach(historyFrame => {
-                    if (historyFrame[i]) {
-                        sumX += historyFrame[i].x;
-                        sumY += historyFrame[i].y;
-                        sumZ += historyFrame[i].z || 0;
-                        sumVis += historyFrame[i].visibility || 0;
-                        count++;
-                    }
-                });
-
-                return {
-                    x: sumX / count,
-                    y: sumY / count,
-                    z: sumZ / count,
-                    visibility: sumVis / count
-                };
-            });
-
-            return smoothed;
-        }
+        let currentPoseLandmarks = null;
 
         // Handle pose detection results
         function onPoseResults(results) {
-            if (!results.poseLandmarks) return;
-
-            // Apply smoothing
-            const smoothedLandmarks = smoothLandmarks(results.poseLandmarks);
-            if (!smoothedLandmarks) return;
+            currentPoseLandmarks = results.poseLandmarks;
+            
+            if (!currentPoseLandmarks) return;
 
             // Set canvas size to match source
             outputCanvas.width = results.image.width;
@@ -500,17 +498,61 @@
             ctx.fillStyle = settings.bgColor;
             ctx.fillRect(0, 0, outputCanvas.width, outputCanvas.height);
 
-            // Draw the glowing stick figure with scaling
-            drawGlowingStickFigure(smoothedLandmarks);
+            // Draw the glowing stick figure
+            drawGlowingStickFigure(currentPoseLandmarks);
         }
 
-        // Calculate bounding box for scaling
+        // Linear interpolation between two poses
+        function interpolatePoses(pose1, pose2, ratio) {
+            if (!pose1 || !pose2) return pose1 || pose2;
+
+            return pose1.map((landmark1, i) => {
+                const landmark2 = pose2[i];
+                if (!landmark1 || !landmark2) return landmark1 || landmark2;
+
+                return {
+                    x: landmark1.x + (landmark2.x - landmark1.x) * ratio,
+                    y: landmark1.y + (landmark2.y - landmark1.y) * ratio,
+                    z: landmark1.z + (landmark2.z - landmark1.z) * ratio,
+                    visibility: Math.max(landmark1.visibility, landmark2.visibility)
+                };
+            });
+        }
+
+        // Get interpolated pose for smooth playback
+        function getInterpolatedPose(frameIndex) {
+            if (processedPoses.length === 0) return null;
+            
+            if (settings.interpolationLevel === 0) {
+                // No interpolation - use nearest pose
+                const nearestIndex = Math.min(frameIndex, processedPoses.length - 1);
+                return processedPoses[nearestIndex];
+            }
+
+            // Find surrounding poses
+            const poseIndex = frameIndex / settings.interpolationLevel;
+            const lowerIndex = Math.floor(poseIndex);
+            const upperIndex = Math.ceil(poseIndex);
+            
+            if (lowerIndex >= processedPoses.length) {
+                return processedPoses[processedPoses.length - 1];
+            }
+            
+            if (upperIndex >= processedPoses.length) {
+                return processedPoses[lowerIndex];
+            }
+
+            const ratio = poseIndex - lowerIndex;
+            return interpolatePoses(processedPoses[lowerIndex], processedPoses[upperIndex], ratio);
+        }
+
+        // Calculate bounding box for auto-scaling
         function getBoundingBox(landmarks) {
             let minX = Infinity, minY = Infinity;
             let maxX = -Infinity, maxY = -Infinity;
 
             landmarks.forEach(landmark => {
-                if (landmark.visibility > 0.2) {
+                if (landmark && landmark.visibility > 0.2) {
                     minX = Math.min(minX, landmark.x);
                     minY = Math.min(minY, landmark.y);
                     maxX = Math.max(maxX, landmark.x);
@@ -521,23 +563,25 @@
             return { minX, minY, maxX, maxY };
         }
 
-        // Draw glowing stick figure with improved quality and size
+        // Draw glowing stick figure with optimizations
         function drawGlowingStickFigure(landmarks) {
+            if (!landmarks) return;
+
             const w = outputCanvas.width;
             const h = outputCanvas.height;
 
-            // Get bounding box for centering and scaling
+            // Get bounding box for auto-scaling
             const bbox = getBoundingBox(landmarks);
             const bboxWidth = bbox.maxX - bbox.minX;
             const bboxHeight = bbox.maxY - bbox.minY;
             const centerX = (bbox.minX + bbox.maxX) / 2;
             const centerY = (bbox.minY + bbox.maxY) / 2;
 
-            // Calculate scale to make figure larger
-            const baseScale = Math.min(w / (bboxWidth * w), h / (bboxHeight * h)) * 0.8;
-            const scale = baseScale * settings.figureSize;
+            // Calculate scale
+            const baseScale = Math.min(w / (bboxWidth * w), h / (bboxHeight * h)) * 0.7;
+            const scale = baseScale * settings.figureScale;
 
-            // Transform function to scale and center
+            // Transform function
             const transform = (landmark) => {
                 const scaledX = ((landmark.x - centerX) * scale) + 0.5;
                 const scaledY = ((landmark.y - centerY) * scale) + 0.5;
@@ -548,36 +592,21 @@
                 };
             };
 
-            // Define comprehensive connections between body points
+            // Comprehensive body connections
             const connections = [
-                // Core body
-                [11, 12], // shoulders
-                [11, 23], [12, 24], // torso
-                [23, 24], // hips
-                
-                // Left arm
-                [11, 13], [13, 15], // shoulder to elbow to wrist
-                [15, 17], [15, 19], [15, 21], // hand details
-                
-                // Right arm
-                [12, 14], [14, 16], // shoulder to elbow to wrist
-                [16, 18], [16, 20], [16, 22], // hand details
-                
-                // Left leg
-                [23, 25], [25, 27], // hip to knee to ankle
-                [27, 29], [27, 31], // foot details
-                
-                // Right leg
-                [24, 26], [26, 28], // hip to knee to ankle
-                [28, 30], [28, 32], // foot details
-                
-                // Head/neck (optional, can be commented out)
-                [0, 1], [1, 2], [2, 3],
-                [0, 4], [4, 5], [5, 6],
-                [9, 10] // mouth
+                // Core
+                [11, 12], [11, 23], [12, 24], [23, 24],
+                // Arms
+                [11, 13], [13, 15], [12, 14], [14, 16],
+                [15, 17], [15, 19], [15, 21], [16, 18], [16, 20], [16, 22],
+                // Legs
+                [23, 25], [25, 27], [24, 26], [26, 28],
+                [27, 29], [27, 31], [28, 30], [28, 32],
+                // Head (optional)
+                [0, 1], [1, 2], [2, 3], [0, 4], [4, 5], [5, 6]
             ];
 
-            // Setup enhanced glow effect
+            // Setup glow effect
             ctx.shadowBlur = settings.glowIntensity;
             ctx.shadowColor = settings.glowColor;
             ctx.strokeStyle = settings.glowColor;
@@ -585,14 +614,13 @@
             ctx.lineCap = 'round';
             ctx.lineJoin = 'round';
 
-            // Draw connections with better quality
+            // Draw connections
             connections.forEach(([start, end]) => {
                 if (landmarks[start] && landmarks[end]) {
                     const startPoint = transform(landmarks[start]);
                     const endPoint = transform(landmarks[end]);
 
-                    // Lower visibility threshold for more complete figure
-                    if (landmarks[start].visibility > 0.2 && landmarks[end].visibility > 0.2) {
+                    if (landmarks[start].visibility > 0.3 && landmarks[end].visibility > 0.3) {
                         ctx.beginPath();
                         ctx.moveTo(startPoint.x, startPoint.y);
                         ctx.lineTo(endPoint.x, endPoint.y);
@@ -601,19 +629,17 @@
                 }
             });
 
-            // Draw joints as larger circles for better visibility
+            // Draw joints
             ctx.fillStyle = settings.glowColor;
             landmarks.forEach((landmark, index) => {
-                // Draw all main body joints
-                if (index >= 11 && landmark.visibility > 0.2) {
+                if (index >= 11 && landmark.visibility > 0.3) {
                     const point = transform(landmark);
                     ctx.beginPath();
-                    ctx.arc(point.x, point.y, settings.lineThickness * 2, 0, 2 * Math.PI);
+                    ctx.arc(point.x, point.y, settings.lineThickness * 2.5, 0, 2 * Math.PI);
                     ctx.fill();
                 }
             });
 
-            // Reset shadow for clean rendering
             ctx.shadowBlur = 0;
         }
 
@@ -622,10 +648,8 @@
             const file = e.target.files[0];
             if (!file) return;
 
-            // Clear previous media
             clearMedia();
 
-            // Check file type
             if (file.type.startsWith('image/')) {
                 await handleImage(file);
             } else if (file.type.startsWith('video/')) {
@@ -636,24 +660,19 @@
         // Handle image upload
         async function handleImage(file) {
             mediaType = 'image';
-            poseHistory = []; // Reset smoothing history
-            
             const img = new Image();
             const url = URL.createObjectURL(file);
 
             img.onload = async () => {
-                // Display original
                 const originalContainer = document.getElementById('originalContainer');
                 originalContainer.innerHTML = '';
                 originalContainer.appendChild(img);
 
                 currentMedia = img;
 
-                // Process image
                 if (!pose) await initPose();
                 await pose.send({image: img});
 
-                // Enable export buttons
                 document.getElementById('exportImageBtn').disabled = false;
                 document.getElementById('exportVideoBtn').disabled = true;
 
@@ -663,23 +682,21 @@
             img.src = url;
         }
 
-        // Handle video upload with improved processing
+        // Handle video upload with optimization
         async function handleVideo(file) {
             mediaType = 'video';
-            poseHistory = []; // Reset smoothing history
-            
             const video = document.createElement('video');
             const url = URL.createObjectURL(file);
 
             video.onloadedmetadata = async () => {
-                // Check duration
-                if (video.duration > 60) {
+                originalVideoDuration = video.duration;
+
+                if (video.duration > 45) {
                     document.getElementById('videoWarning').classList.remove('hidden');
                 } else {
                     document.getElementById('videoWarning').classList.add('hidden');
                 }
 
-                // Display original
                 const originalContainer = document.getElementById('originalContainer');
                 originalContainer.innerHTML = '';
                 video.controls = true;
@@ -688,10 +705,7 @@
 
                 currentMedia = video;
 
-                // Initialize pose detector
                 if (!pose) await initPose();
-
-                // Process video frames at higher FPS
                 await processVideoFrames(video);
 
                 URL.revokeObjectURL(url);
@@ -700,10 +714,10 @@
             video.src = url;
         }
 
-        // Process video frame by frame with 60 FPS
+        // Optimized video processing with strategic frame skipping
         async function processVideoFrames(video) {
             videoFrames = [];
-            poseHistory = []; // Reset for fresh smoothing
+            processedPoses = [];
             
             const progressContainer = document.getElementById('progressContainer');
             const progressFill = document.getElementById('progressFill');
@@ -712,98 +726,120 @@
             progressContainer.style.display = 'block';
             isProcessing = true;
 
-            // Create temporary canvas for frame capture
             const tempCanvas = document.createElement('canvas');
             const tempCtx = tempCanvas.getContext('2d');
 
             video.currentTime = 0;
-            await new Promise(resolve => {
-                video.onseeked = resolve;
-            });
+            await new Promise(resolve => video.onseeked = resolve);
 
             tempCanvas.width = video.videoWidth;
             tempCanvas.height = video.videoHeight;
             outputCanvas.width = video.videoWidth;
             outputCanvas.height = video.videoHeight;
 
-            const fps = 60; // Increased from 30 to 60 for smoother motion
-            const frameDuration = 1 / fps;
-            const totalFrames = Math.floor(video.duration * fps);
+            // Determine processing strategy
+            let frameSkip = 1;
+            switch(settings.processingQuality) {
+                case 'fast':
+                    frameSkip = 3;
+                    break;
+                case 'balanced':
+                    frameSkip = 2;
+                    break;
+                case 'smooth':
+                    frameSkip = 1;
+                    break;
+            }
 
-            statusMessage.textContent = `Processing at 60 FPS... 0/${totalFrames} frames`;
+            const outputFPS = parseInt(settings.outputFPS);
+            const frameDuration = 1 / outputFPS;
+            const totalFrames = Math.floor(video.duration * outputFPS);
+            
+            statusMessage.textContent = `Processing (${settings.processingQuality} mode, every ${frameSkip === 1 ? '' : frameSkip + ' '}frame${frameSkip > 1 ? 's' : ''})...`;
 
-            for (let i = 0; i < totalFrames; i++) {
+            // Process frames strategically
+            for (let i = 0; i < totalFrames; i += frameSkip) {
                 video.currentTime = i * frameDuration;
-                
-                await new Promise(resolve => {
-                    video.onseeked = resolve;
-                });
+                await new Promise(resolve => video.onseeked = resolve);
 
-                // Draw current frame to temp canvas
                 tempCtx.drawImage(video, 0, 0);
-
-                // Process with pose detection
+                
+                currentPoseLandmarks = null;
                 await pose.send({image: tempCanvas});
+                
+                // Wait a bit for pose detection to complete
+                await new Promise(resolve => setTimeout(resolve, 20));
 
-                // Small delay to ensure processing completes
-                await new Promise(resolve => setTimeout(resolve, 10));
+                if (currentPoseLandmarks) {
+                    processedPoses.push(JSON.parse(JSON.stringify(currentPoseLandmarks)));
+                }
 
-                // Save the processed frame
-                const frameData = outputCanvas.toDataURL('image/png');
+                const progress = Math.round(((i + frameSkip) / totalFrames) * 100);
+                progressFill.style.width = `${Math.min(progress, 100)}%`;
+                progressFill.textContent = `${Math.min(progress, 100)}%`;
+            }
+
+            // Generate all output frames with interpolation
+            statusMessage.textContent = 'Generating smooth output frames...';
+            
+            for (let i = 0; i < totalFrames; i++) {
+                const interpolatedPose = getInterpolatedPose(i);
+                
+                if (interpolatedPose) {
+                    ctx.fillStyle = settings.bgColor;
+                    ctx.fillRect(0, 0, outputCanvas.width, outputCanvas.height);
+                    drawGlowingStickFigure(interpolatedPose);
+                }
+
+                const frameData = outputCanvas.toDataURL('image/jpeg', 0.85); // JPEG for smaller size
                 videoFrames.push(frameData);
 
-                // Update progress
                 const progress = Math.round(((i + 1) / totalFrames) * 100);
                 progressFill.style.width = `${progress}%`;
                 progressFill.textContent = `${progress}%`;
-                statusMessage.textContent = `Processing at 60 FPS... ${i + 1}/${totalFrames} frames`;
             }
 
             isProcessing = false;
             progressContainer.style.display = 'none';
-            statusMessage.textContent = `✅ Video processed with ${totalFrames} frames! Ready to export.`;
+            statusMessage.textContent = `✅ Processed ${totalFrames} frames! Ready to export.`;
 
-            // Enable export buttons
             document.getElementById('exportImageBtn').disabled = false;
             document.getElementById('exportVideoBtn').disabled = false;
 
-            // Start playback
-            playProcessedVideo();
+            playProcessedVideo(outputFPS);
 
             // Sync with original video
-            video.addEventListener('play', playProcessedVideo);
+            video.addEventListener('play', () => playProcessedVideo(outputFPS));
             video.addEventListener('pause', pauseProcessedVideo);
             video.addEventListener('seeked', () => {
-                const frameIndex = Math.floor(video.currentTime * fps);
+                const frameIndex = Math.floor(video.currentTime * outputFPS);
                 showFrame(frameIndex);
             });
         }
 
-        // Play processed video at 60 FPS
-        function playProcessedVideo() {
+        // Play processed video at correct FPS
+        function playProcessedVideo(fps = 30) {
             if (animationId) cancelAnimationFrame(animationId);
             
-            const fps = 60;
             const frameDuration = 1000 / fps;
-            let lastFrameTime = Date.now();
+            let lastFrameTime = performance.now();
+            let frameIndex = 0;
 
-            function animate() {
-                const now = Date.now();
-                const elapsed = now - lastFrameTime;
+            function animate(currentTime) {
+                const elapsed = currentTime - lastFrameTime;
 
                 if (elapsed >= frameDuration) {
-                    currentFrame = (currentFrame + 1) % videoFrames.length;
-                    showFrame(currentFrame);
-                    lastFrameTime = now;
+                    frameIndex = (frameIndex + 1) % videoFrames.length;
+                    showFrame(frameIndex);
+                    lastFrameTime = currentTime - (elapsed % frameDuration); // Carry over remainder
                 }
 
                 animationId = requestAnimationFrame(animate);
             }
 
-            animate();
+            animationId = requestAnimationFrame(animate);
         }
 
-        // Pause processed video
         function pauseProcessedVideo() {
             if (animationId) {
                 cancelAnimationFrame(animationId);
@@ -811,7 +847,6 @@
             }
         }
 
-        // Show specific frame
         function showFrame(index) {
             if (videoFrames[index]) {
                 const img = new Image();
@@ -825,12 +860,12 @@
         // Export as image
         document.getElementById('exportImageBtn').addEventListener('click', () => {
             const link = document.createElement('a');
-            link.download = `matchstick-pro-${Date.now()}.png`;
+            link.download = `matchstick-optimized-${Date.now()}.png`;
             link.href = outputCanvas.toDataURL('image/png');
             link.click();
         });
 
-        // Export as high-quality video
+        // Export as video
         document.getElementById('exportVideoBtn').addEventListener('click', async () => {
             if (videoFrames.length === 0) return;
 
@@ -839,13 +874,14 @@
             const statusMessage = document.getElementById('statusMessage');
 
             progressContainer.style.display = 'block';
-            statusMessage.textContent = 'Creating high-quality video...';
+            statusMessage.textContent = 'Encoding video...';
 
-            // Create video from frames using MediaRecorder with higher bitrate
-            const stream = outputCanvas.captureStream(60); // 60 FPS stream
+            const fps = parseInt(settings.outputFPS);
+            const stream = outputCanvas.captureStream(fps);
+            
             const mediaRecorder = new MediaRecorder(stream, {
                 mimeType: 'video/webm;codecs=vp9',
-                videoBitsPerSecond: 8000000 // Increased bitrate for better quality
+                videoBitsPerSecond: 5000000
             });
 
             const chunks = [];
@@ -856,18 +892,17 @@
                 const url = URL.createObjectURL(blob);
                 const link = document.createElement('a');
                 link.href = url;
-                link.download = `matchstick-pro-${Date.now()}.webm`;
+                link.download = `matchstick-optimized-${Date.now()}.webm`;
                 link.click();
                 URL.revokeObjectURL(url);
 
                 progressContainer.style.display = 'none';
-                statusMessage.textContent = '✅ High-quality video exported successfully!';
+                statusMessage.textContent = '✅ Video exported successfully!';
             };
 
             mediaRecorder.start();
 
-            // Play through all frames at 60 FPS
-            const frameDelay = 1000 / 60;
+            const frameDelay = 1000 / fps;
             for (let i = 0; i < videoFrames.length; i++) {
                 showFrame(i);
                 await new Promise(resolve => setTimeout(resolve, frameDelay));
@@ -880,28 +915,27 @@
             mediaRecorder.stop();
         });
 
-        // Clear media
         function clearMedia() {
             if (animationId) {
                 cancelAnimationFrame(animationId);
                 animationId = null;
             }
             videoFrames = [];
+            processedPoses = [];
             currentFrame = 0;
             currentMedia = null;
-            poseHistory = [];
+            currentPoseLandmarks = null;
             
             document.getElementById('exportImageBtn').disabled = true;
             document.getElementById('exportVideoBtn').disabled = true;
             document.getElementById('videoWarning').classList.add('hidden');
         }
 
-        // Update settings with real-time preview
+        // Settings updates
         document.getElementById('glowColor').addEventListener('input', (e) => {
             settings.glowColor = e.target.value;
             document.getElementById('glowColorLabel').textContent = e.target.value;
             if (currentMedia && mediaType === 'image') {
-                poseHistory = [];
                 pose.send({image: currentMedia});
             }
         });
@@ -910,7 +944,6 @@
             settings.bgColor = e.target.value;
             document.getElementById('bgColorLabel').textContent = e.target.value;
             if (currentMedia && mediaType === 'image') {
-                poseHistory = [];
                 pose.send({image: currentMedia});
             }
         });
@@ -919,7 +952,6 @@
             settings.glowIntensity = parseInt(e.target.value);
             document.getElementById('glowValue').textContent = e.target.value;
             if (currentMedia && mediaType === 'image') {
-                poseHistory = [];
                 pose.send({image: currentMedia});
             }
         });
@@ -928,24 +960,31 @@
             settings.lineThickness = parseInt(e.target.value);
             document.getElementById('thicknessValue').textContent = e.target.value;
             if (currentMedia && mediaType === 'image') {
-                poseHistory = [];
                 pose.send({image: currentMedia});
             }
         });
 
-        document.getElementById('figureSize').addEventListener('change', (e) => {
-            settings.figureSize = parseFloat(e.target.value);
+        document.getElementById('figureScale').addEventListener('input', (e) => {
+            settings.figureScale = parseInt(e.target.value) / 100;
+            document.getElementById('scaleValue').textContent = e.target.value;
             if (currentMedia && mediaType === 'image') {
-                poseHistory = [];
                 pose.send({image: currentMedia});
             }
         });
 
-        document.getElementById('smoothingLevel').addEventListener('change', (e) => {
-            settings.smoothingLevel = parseInt(e.target.value);
+        document.getElementById('processingQuality').addEventListener('change', (e) => {
+            settings.processingQuality = e.target.value;
         });
 
-        // Initialize on load
+        document.getElementById('outputFPS').addEventListener('change', (e) => {
+            settings.outputFPS = e.target.value;
+        });
+
+        document.getElementById('interpolationLevel').addEventListener('change', (e) => {
+            settings.interpolationLevel = parseInt(e.target.value);
+        });
+
+        // Initialize
         window.addEventListener('load', () => {
             initPose();
         });

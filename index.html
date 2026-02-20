@@ -431,6 +431,9 @@
                     <div class="progress-fill" id="progressFill">0%</div>
                 </div>
                 <p class="status-message" id="statusMessage">Processing...</p>
+                <button class="export-btn" id="cancelBtn" style="background: #dc3545; margin-top: 10px; display: none;">
+                    ❌ Cancel / Use Fallback Method
+                </button>
             </div>
 
             <div>
@@ -933,69 +936,115 @@
 
             progressContainer.style.display = 'block';
             
+            // Check if video is too long for FFmpeg in browser
+            if (videoFrames.length > 1800) { // More than 60 seconds at 30fps
+                statusMessage.textContent = 'Video too long for browser encoding. Using standard method...';
+                await exportVideoMediaRecorder();
+                return;
+            }
+            
             try {
                 // Load FFmpeg if not already loaded
                 if (!ffmpegLoaded) {
-                    statusMessage.textContent = 'Loading video encoder (first time only)...';
+                    statusMessage.textContent = 'Loading video encoder (first time only, ~3MB)...';
                     progressFill.style.width = '0%';
                     progressFill.textContent = 'Loading...';
+                    
+                    const loadTimeout = setTimeout(() => {
+                        console.error('FFmpeg load timeout');
+                        ffmpegLoaded = false;
+                    }, 30000); // 30 second timeout
+                    
                     await loadFFmpeg();
+                    clearTimeout(loadTimeout);
                 }
 
                 if (!ffmpegLoaded) {
-                    // Fallback to MediaRecorder if FFmpeg fails to load
                     statusMessage.textContent = 'Using fallback encoder...';
                     await exportVideoMediaRecorder();
                     return;
                 }
 
                 statusMessage.textContent = 'Preparing frames for encoding...';
+                progressFill.style.width = '0%';
+                progressFill.textContent = '0%';
                 
                 const fps = parseInt(settings.outputFPS);
                 
-                // Write all frames to FFmpeg virtual filesystem
+                // Write frames to FFmpeg filesystem with better error handling
                 for (let i = 0; i < videoFrames.length; i++) {
-                    // Convert base64 to blob
-                    const response = await fetch(videoFrames[i]);
-                    const blob = await response.blob();
-                    const arrayBuffer = await blob.arrayBuffer();
-                    const uint8Array = new Uint8Array(arrayBuffer);
-                    
-                    // Write frame to FFmpeg
-                    const filename = `frame${String(i).padStart(5, '0')}.jpg`;
-                    await ffmpeg.writeFile(filename, uint8Array);
-                    
-                    if (i % 10 === 0) {
-                        const progress = Math.round((i / videoFrames.length) * 50); // 0-50% for frame prep
-                        progressFill.style.width = `${progress}%`;
-                        progressFill.textContent = `${progress}%`;
-                        statusMessage.textContent = `Preparing frames... ${i + 1}/${videoFrames.length}`;
+                    try {
+                        // Convert base64 to blob
+                        const base64Data = videoFrames[i].split(',')[1];
+                        const binaryString = atob(base64Data);
+                        const bytes = new Uint8Array(binaryString.length);
+                        for (let j = 0; j < binaryString.length; j++) {
+                            bytes[j] = binaryString.charCodeAt(j);
+                        }
+                        
+                        // Write frame to FFmpeg
+                        const filename = `frame${String(i).padStart(5, '0')}.jpg`;
+                        await ffmpeg.writeFile(filename, bytes);
+                        
+                        // Update progress more frequently for better feedback
+                        if (i % 5 === 0 || i === videoFrames.length - 1) {
+                            const progress = Math.round((i / videoFrames.length) * 40); // 0-40% for frame prep
+                            progressFill.style.width = `${progress}%`;
+                            progressFill.textContent = `${progress}%`;
+                            statusMessage.textContent = `Preparing frames... ${i + 1}/${videoFrames.length}`;
+                            
+                            // Allow UI to update
+                            await new Promise(resolve => setTimeout(resolve, 0));
+                        }
+                    } catch (frameError) {
+                        console.error(`Error writing frame ${i}:`, frameError);
+                        throw new Error(`Failed to prepare frame ${i}`);
                     }
                 }
 
-                statusMessage.textContent = 'Encoding video with FFmpeg...';
+                statusMessage.textContent = 'Encoding video with FFmpeg (this may take a minute)...';
+                progressFill.style.width = '50%';
+                progressFill.textContent = '50%';
                 
-                // Run FFmpeg to create MP4 with exact frame rate
-                // -framerate: input frame rate
-                // -i: input pattern
-                // -c:v libx264: use H.264 codec
-                // -preset fast: encoding speed preset
-                // -pix_fmt yuv420p: pixel format for compatibility
-                // -r: output frame rate
-                // -b:v: video bitrate
-                await ffmpeg.exec([
+                // Show cancel button in case it gets stuck
+                document.getElementById('cancelBtn').style.display = 'block';
+                cancelEncoding = false;
+                
+                // Allow UI to update before heavy encoding
+                await new Promise(resolve => setTimeout(resolve, 100));
+                
+                // Run FFmpeg with timeout protection
+                const encodingPromise = ffmpeg.exec([
                     '-framerate', String(fps),
                     '-i', 'frame%05d.jpg',
                     '-c:v', 'libx264',
-                    '-preset', 'fast',
+                    '-preset', 'ultrafast', // Changed from 'fast' to 'ultrafast' for speed
                     '-pix_fmt', 'yuv420p',
                     '-r', String(fps),
-                    '-b:v', '8M',
+                    '-b:v', '6M', // Reduced from 8M to 6M for faster encoding
+                    '-movflags', '+faststart', // Better web playback
                     'output.mp4'
                 ]);
+                
+                // Timeout for encoding (2 minutes max)
+                const encodingTimeout = setTimeout(() => {
+                    console.error('FFmpeg encoding timeout');
+                    throw new Error('Encoding took too long');
+                }, 120000);
+                
+                await encodingPromise;
+                clearTimeout(encodingTimeout);
 
+                statusMessage.textContent = 'Reading encoded video...';
+                progressFill.style.width = '90%';
+                progressFill.textContent = '90%';
+                
                 // Read the output file
                 const data = await ffmpeg.readFile('output.mp4');
+                
+                statusMessage.textContent = 'Finalizing download...';
+                progressFill.style.width = '95%';
+                progressFill.textContent = '95%';
                 
                 // Create download link
                 const blob = new Blob([data.buffer], { type: 'video/mp4' });
@@ -1004,30 +1053,65 @@
                 link.href = url;
                 link.download = `matchstick-optimized-${Date.now()}.mp4`;
                 link.click();
-                URL.revokeObjectURL(url);
+                
+                // Cleanup after a delay to ensure download starts
+                setTimeout(() => URL.revokeObjectURL(url), 1000);
 
                 // Cleanup FFmpeg filesystem
                 statusMessage.textContent = 'Cleaning up...';
-                for (let i = 0; i < videoFrames.length; i++) {
-                    const filename = `frame${String(i).padStart(5, '0')}.jpg`;
-                    try {
-                        await ffmpeg.deleteFile(filename);
-                    } catch (e) {
-                        // Ignore errors during cleanup
+                progressFill.style.width = '98%';
+                progressFill.textContent = '98%';
+                
+                // Clean up in batches to avoid blocking
+                const cleanupBatchSize = 50;
+                for (let i = 0; i < videoFrames.length; i += cleanupBatchSize) {
+                    const batchEnd = Math.min(i + cleanupBatchSize, videoFrames.length);
+                    const cleanupPromises = [];
+                    
+                    for (let j = i; j < batchEnd; j++) {
+                        const filename = `frame${String(j).padStart(5, '0')}.jpg`;
+                        cleanupPromises.push(
+                            ffmpeg.deleteFile(filename).catch(() => {})
+                        );
                     }
+                    
+                    await Promise.all(cleanupPromises);
+                    await new Promise(resolve => setTimeout(resolve, 0)); // Let UI breathe
                 }
+                
                 try {
                     await ffmpeg.deleteFile('output.mp4');
                 } catch (e) {
-                    // Ignore
+                    // Ignore cleanup errors
                 }
 
-                progressContainer.style.display = 'none';
-                statusMessage.textContent = '✅ High-quality MP4 video exported successfully!';
+                progressFill.style.width = '100%';
+                progressFill.textContent = '100%';
+                
+                document.getElementById('cancelBtn').style.display = 'none';
+                
+                setTimeout(() => {
+                    progressContainer.style.display = 'none';
+                    statusMessage.textContent = '✅ High-quality MP4 video exported successfully!';
+                }, 500);
 
             } catch (error) {
                 console.error('FFmpeg export error:', error);
-                statusMessage.textContent = '❌ Error during encoding. Using fallback method...';
+                document.getElementById('cancelBtn').style.display = 'none';
+                
+                if (cancelEncoding) {
+                    // User cancelled, already switched to fallback
+                    return;
+                }
+                
+                progressContainer.style.display = 'none';
+                
+                // Show user-friendly error message
+                alert('FFmpeg encoding failed. Switching to standard method (WebM format). This will be faster but may have slight quality differences.');
+                
+                statusMessage.textContent = 'Using fallback encoder...';
+                progressContainer.style.display = 'block';
+                
                 await exportVideoMediaRecorder();
             }
         });
@@ -1096,6 +1180,15 @@
             document.getElementById('videoWarning').classList.add('hidden');
             document.getElementById('processingControl').classList.add('hidden');
         }
+
+        // Cancel button for stuck encoding
+        let cancelEncoding = false;
+        document.getElementById('cancelBtn').addEventListener('click', async () => {
+            cancelEncoding = true;
+            document.getElementById('cancelBtn').style.display = 'none';
+            document.getElementById('statusMessage').textContent = 'Cancelling... switching to fallback method';
+            await exportVideoMediaRecorder();
+        });
 
         // Start Processing button handler
         document.getElementById('startProcessingBtn').addEventListener('click', async () => {
